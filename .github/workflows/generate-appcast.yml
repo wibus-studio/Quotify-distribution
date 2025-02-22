@@ -1,0 +1,68 @@
+name: Generate Sparkle Appcast
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  generate-appcast:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          
+      - name: Install generate-appcast
+        run: |
+          brew install sparkle
+          
+      - name: Download Release Asset
+        run: |
+          # 创建临时目录存放下载的文件
+          mkdir -p downloads
+          
+          # 获取当前发布版本信息
+          RELEASE_URL=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                       "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}")
+          
+          # 下载 .app.zip 文件
+          DOWNLOAD_URL=$(echo "$RELEASE_URL" | jq -r '.assets[] | select(.name | endswith(".app.zip")) | .browser_download_url')
+          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -o "downloads/Quotify.app.zip" "$DOWNLOAD_URL"
+
+      - name: Generate Appcast
+        run: |
+          # 生成 appcast
+          /usr/local/bin/generate-appcast \
+            --ed-key-file <(echo "${{ secrets.SPARKLE_PRIVATE_KEY }}") \
+            --download-url-prefix "https://github.com/${{ github.repository }}/releases/download/" \
+            downloads/
+
+      - name: Upload Appcast to Release
+        run: |
+          # 上传 appcast.xml 到当前 release
+          UPLOAD_URL=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                      "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
+                      | jq -r '.upload_url' | sed 's/{?name,label}//')
+          
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/xml" \
+            -T downloads/appcast.xml \
+            "${UPLOAD_URL}?name=appcast.xml"
+
+      - name: Publish Release
+        run: |
+          curl -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
+            -d '{"draft": false}'
