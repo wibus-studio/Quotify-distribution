@@ -43,7 +43,6 @@ jobs:
           # 生成 appcast
           /usr/local/bin/generate-appcast \
             --ed-key-file <(echo "${{ secrets.SPARKLE_PRIVATE_KEY }}") \
-            --download-url-prefix "https://github.com/${{ github.repository }}/releases/download/" \
             downloads/
 
       - name: Upload Appcast to Release
