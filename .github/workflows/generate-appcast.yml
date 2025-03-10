@@ -1,8 +1,9 @@
 name: Generate Sparkle Appcast
 
 on:
-  release:
-    types: [created, prereleased]
+  workflow_dispatch:
+  # release:
+  #   types: [created, prereleased]
 
 jobs:
   generate-appcast:
