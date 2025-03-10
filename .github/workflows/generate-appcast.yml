@@ -19,18 +19,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-          
-      - name: Install generate-appcast
-        run: |
-          brew install sparkle
-          # 查找 generate-appcast 工具的实际位置
-          echo "查找 generate-appcast 工具位置"
-          find /opt/homebrew -name "generate-appcast" | grep -v Caskroom || true
-          find /usr/local -name "generate-appcast" || true
-          find /Applications -name "generate-appcast" || true
-          which sparkle || true
-          ls -la /opt/homebrew/bin/ | grep sparkle || true
-          
+
       - name: Download Release Asset
         run: |
           # 创建临时目录存放下载的文件
@@ -47,17 +36,9 @@ jobs:
 
       - name: Generate Appcast
         run: |
+          chmod +x ./bin/generate-appcast
           # 生成 appcast
-          # 尝试使用正确的路径
-          SPARKLE_BIN=$(find /opt/homebrew -name "generate-appcast" | grep -v Caskroom | head -1)
-          if [ -z "$SPARKLE_BIN" ]; then
-            SPARKLE_BIN="/opt/homebrew/bin/sparkle"
-          fi
-          
-          echo "使用 Sparkle 工具: $SPARKLE_BIN"
-          
-          # 生成 appcast
-          $SPARKLE_BIN \
+          ./bin/generate-appcast \
             --ed-key-file <(echo "${{ secrets.SPARKLE_PRIVATE_KEY }}") \
             downloads/
 
