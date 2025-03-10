@@ -2,7 +2,7 @@ name: Generate Sparkle Appcast
 
 on:
   release:
-    types: [created]
+    types: [created, prereleased]
 
 jobs:
   generate-appcast:
@@ -58,10 +58,21 @@ jobs:
             -T downloads/appcast.xml \
             "${UPLOAD_URL}?name=appcast.xml"
 
-      - name: Publish Release
+      - name: Set Release State
         run: |
-          curl -X PATCH \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
-            -d '{"draft": false}'
+          # 获取当前发布状态
+          RELEASE_INFO=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                     "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}")
+          
+          IS_PRERELEASE=$(echo "$RELEASE_INFO" | jq -r '.prerelease')
+          
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            echo "保持 pre-release 状态不变"
+          else
+            echo "设置为正式发布状态"
+            curl -X PATCH \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
+              -d '{"draft": false}'
+          fi
