@@ -36,9 +36,9 @@ jobs:
 
       - name: Generate Appcast
         run: |
-          chmod +x ./bin/generate-appcast
+          chmod +x ./bin/generate_appcast
           # 生成 appcast
-          ./bin/generate-appcast \
+          ./bin/generate_appcast \
             --ed-key-file <(echo "${{ secrets.SPARKLE_PRIVATE_KEY }}") \
             downloads/
 
